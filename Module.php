@@ -13,6 +13,8 @@ namespace dektrium\user;
 
 use yii\base\Module as BaseModule;
 
+use dektrium\user\helpers\StrengthValidator;
+
 /**
  * This is the main module class for the Yii2-user.
  *
@@ -83,6 +85,18 @@ class Module extends BaseModule
 
     /** @var array Model map */
     public $modelMap = [];
+
+    /** @var bool Enable Password Strenth Validation */
+    public $enableStrengthValidaton = true;
+
+    /**
+     * @var string|array Configurations for the password strength validator. Defaults to 'StrengthValidator::NORMAL'
+     * See \dektrium\user\helpers\StrengthValidator.php
+     */
+    public $passwordStrengthConfig = StrengthValidator::NORMAL;
+
+    /** @var bool Show username field */
+    public $requireUsername = true;
 
     /**
      * @var string The prefix for user module URL.

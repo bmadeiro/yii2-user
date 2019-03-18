@@ -11,9 +11,10 @@
 
 namespace dektrium\user\models;
 
-use dektrium\user\traits\ModuleTrait;
 use Yii;
 use yii\base\Model;
+use dektrium\user\traits\ModuleTrait;
+use dektrium\user\helpers\StrengthValidator;
 
 /**
  * Registration form collects user input on registration process, validates it and creates new User model.
@@ -39,24 +40,18 @@ class RegistrationForm extends Model
     public $password;
 
     /**
+     * @var string Password repetition
+     */
+    public $passwordRepeat;
+
+    /**
      * @inheritdoc
      */
     public function rules()
     {
         $user = $this->module->modelMap['User'];
 
-        return [
-            // username rules
-            'usernameTrim'     => ['username', 'trim'],
-            'usernameLength'   => ['username', 'string', 'min' => 3, 'max' => 255],
-            'usernamePattern'  => ['username', 'match', 'pattern' => $user::$usernameRegexp],
-            'usernameRequired' => ['username', 'required'],
-            'usernameUnique'   => [
-                'username',
-                'unique',
-                'targetClass' => $user,
-                'message' => Yii::t('user', 'This username has already been taken')
-            ],
+        $rules = [
             // email rules
             'emailTrim'     => ['email', 'trim'],
             'emailRequired' => ['email', 'required'],
@@ -68,9 +63,50 @@ class RegistrationForm extends Model
                 'message' => Yii::t('user', 'This email address has already been taken')
             ],
             // password rules
-            'passwordRequired' => ['password', 'required', 'skipOnEmpty' => $this->module->enableGeneratingPassword],
-            'passwordLength'   => ['password', 'string', 'min' => 6, 'max' => 72],
+            'passwordRequired' => [['password', 'passwordRepeat'], 'required', 'skipOnEmpty' => $this->module->enableGeneratingPassword],
+            'passwordCompare' => ['passwordRepeat',
+                'compare',
+                'compareAttribute'=>'password',
+                'skipOnEmpty' => $this->module->enableGeneratingPassword,
+                'message'=> Yii::t('user', 'Passwords are not the same')
+            ],
+
         ];
+
+        if ($this->module->enableStrengthValidaton === true) {
+            $rules_password = [
+                'passwordStrength' => array_merge(
+                    ['password', StrengthValidator::className()],
+                $this->module->passwordStrengthConfig
+                ),
+            ];
+        } else {
+            $rules_password = [
+                'passwordLength'   => ['password', 'string', 'min' => 6, 'max' => 72],
+            ];
+        }
+
+        if ($this->module->requireUsername === true) {
+            // username rules
+            $rules_user = [
+                'usernameTrim'     => ['username', 'trim'],
+                'usernameLength'   => ['username', 'string', 'min' => 3, 'max' => 255],
+                'usernamePattern'  => ['username', 'match', 'pattern' => $user::$usernameRegexp],
+                'usernameRequired' => ['username', 'required'],
+                'usernameUnique'   => [
+                    'username',
+                    'unique',
+                    'targetClass' => $user,
+                    'message' => Yii::t('user', 'This username has already been taken')
+                ]
+            ];
+
+            $rules = array_merge($rules, $rules_password, $rules_user);
+        } else {
+            $rules = array_merge($rules, $rules_password);
+        }
+
+        return $rules;
     }
 
     /**
@@ -82,6 +118,7 @@ class RegistrationForm extends Model
             'email'    => Yii::t('user', 'Email'),
             'username' => Yii::t('user', 'Username'),
             'password' => Yii::t('user', 'Password'),
+            'passwordRepeat' => Yii::t('user', 'Password repeat'),
         ];
     }
 

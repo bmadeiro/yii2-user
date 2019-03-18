@@ -11,9 +11,12 @@
 
 namespace dektrium\user\models;
 
+use Yii;
+use yii\base\Model;
 use dektrium\user\Finder;
 use dektrium\user\Mailer;
-use yii\base\Model;
+use dektrium\user\traits\ModuleTrait;
+use dektrium\user\helpers\StrengthValidator;
 
 /**
  * Model for collecting data on password recovery.
@@ -22,6 +25,8 @@ use yii\base\Model;
  */
 class RecoveryForm extends Model
 {
+    use ModuleTrait;
+
     const SCENARIO_REQUEST = 'request';
     const SCENARIO_RESET = 'reset';
 
@@ -34,6 +39,11 @@ class RecoveryForm extends Model
      * @var string
      */
     public $password;
+
+    /**
+     * @var string
+     */
+    public $passwordRepeat;
 
     /**
      * @var Mailer
@@ -65,6 +75,7 @@ class RecoveryForm extends Model
         return [
             'email'    => \Yii::t('user', 'Email'),
             'password' => \Yii::t('user', 'Password'),
+            'passwordRepeat' => \Yii::t('user', 'Password repeat'),
         ];
     }
 
@@ -75,7 +86,7 @@ class RecoveryForm extends Model
     {
         return [
             self::SCENARIO_REQUEST => ['email'],
-            self::SCENARIO_RESET => ['password'],
+            self::SCENARIO_RESET => ['password', 'passwordRepeat'],
         ];
     }
 
@@ -84,13 +95,32 @@ class RecoveryForm extends Model
      */
     public function rules()
     {
-        return [
+        $rules = [
             'emailTrim' => ['email', 'trim'],
             'emailRequired' => ['email', 'required'],
             'emailPattern' => ['email', 'email'],
-            'passwordRequired' => ['password', 'required'],
-            'passwordLength' => ['password', 'string', 'max' => 72, 'min' => 6],
+
+            // password rules
+            'passwordRequired' => [['password', 'passwordRepeat'], 'required'],
+            'passwordCompare' => ['passwordRepeat', 'compare', 'compareAttribute'=>'password', 'skipOnEmpty' => $this->module->enableGeneratingPassword, 'message'=> Yii::t('user', 'Passwords are not the same')],
         ];
+
+        if ($this->module->enableStrengthValidaton === true) {
+            $rules_password = [
+                'passwordStrength' => array_merge(
+                    ['password', StrengthValidator::className()],
+                    $this->module->passwordStrengthConfig
+                ),
+            ];
+        } else {
+            $rules_password = [
+                'passwordLength'   => ['password', 'string', 'min' => 6, 'max' => 72],
+            ];
+        }
+
+        $rules = array_merge($rules, $rules_password);
+
+        return $rules;
     }
 
     /**

@@ -45,15 +45,17 @@ $this->params['breadcrumbs'][] = $this->title;
                     'enableClientValidation' => false,
                 ]); ?>
 
-                <?= $form->field($model, 'email') ?>
-
                 <?= $form->field($model, 'username') ?>
 
-                <?= $form->field($model, 'new_password')->passwordInput() ?>
+                <?= $form->field($model, 'email') ?>
+
+                <?= $form->field($model, 'current_password')->passwordInput() ?>
 
                 <hr/>
 
-                <?= $form->field($model, 'current_password')->passwordInput() ?>
+                <?= $form->field($model, 'new_password')->passwordInput() ?>
+
+                <?= $form->field($model, 'new_password_repeat')->passwordInput() ?>
 
                 <div class="form-group">
                     <div class="col-lg-offset-3 col-lg-9">

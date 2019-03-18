@@ -34,12 +34,16 @@ $this->params['breadcrumbs'][] = $this->title;
                     'enableClientValidation' => false,
                 ]); ?>
 
-                <?= $form->field($model, 'email') ?>
+                <?php if($module->requireUsername === true)
+                    echo $form->field($model, 'username');
+                ?>
 
-                <?= $form->field($model, 'username') ?>
+                <?= $form->field($model, 'email') ?>
 
                 <?php if ($module->enableGeneratingPassword == false): ?>
                     <?= $form->field($model, 'password')->passwordInput() ?>
+
+                    <?= $form->field($model, 'passwordRepeat')->passwordInput() ?>
                 <?php endif ?>
 
                 <?= Html::submitButton(Yii::t('user', 'Sign up'), ['class' => 'btn btn-success btn-block']) ?>

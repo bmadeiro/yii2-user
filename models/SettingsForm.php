@@ -11,12 +11,13 @@
 
 namespace dektrium\user\models;
 
-use dektrium\user\helpers\Password;
-use dektrium\user\Mailer;
-use dektrium\user\Module;
-use dektrium\user\traits\ModuleTrait;
 use Yii;
 use yii\base\Model;
+use dektrium\user\Mailer;
+use dektrium\user\Module;
+use dektrium\user\helpers\Password;
+use dektrium\user\traits\ModuleTrait;
+use dektrium\user\helpers\StrengthValidator;
 
 /**
  * SettingsForm gets user's username, email and password and changes them.
@@ -36,10 +37,13 @@ class SettingsForm extends Model
     public $username;
 
     /** @var string */
+    public $current_password;
+
+    /** @var string */
     public $new_password;
 
     /** @var string */
-    public $current_password;
+    public $new_password_repeat;
 
     /** @var Mailer */
     protected $mailer;
@@ -71,35 +75,67 @@ class SettingsForm extends Model
     /** @inheritdoc */
     public function rules()
     {
-        return [
+        $rules = [
+            // user rules
             'usernameTrim' => ['username', 'trim'],
             'usernameRequired' => ['username', 'required'],
             'usernameLength'   => ['username', 'string', 'min' => 3, 'max' => 255],
             'usernamePattern' => ['username', 'match', 'pattern' => '/^[-a-zA-Z0-9_\.@]+$/'],
+            // email rules
             'emailTrim' => ['email', 'trim'],
             'emailRequired' => ['email', 'required'],
             'emailPattern' => ['email', 'email'],
-            'emailUsernameUnique' => [['email', 'username'], 'unique', 'when' => function ($model, $attribute) {
-                return $this->user->$attribute != $model->$attribute;
-            }, 'targetClass' => $this->module->modelMap['User']],
-            'newPasswordLength' => ['new_password', 'string', 'max' => 72, 'min' => 6],
+            'emailUsernameUnique' => [
+                ['email', 'username'],
+                'unique',
+                'when' => function ($model, $attribute) {
+                    return $this->user->$attribute != $model->$attribute;
+                },
+                'targetClass' => $this->module->modelMap['User']
+            ],
+            // password rules
             'currentPasswordRequired' => ['current_password', 'required'],
             'currentPasswordValidate' => ['current_password', function ($attr) {
                 if (!Password::validate($this->$attr, $this->user->password_hash)) {
                     $this->addError($attr, Yii::t('user', 'Current password is not valid'));
                 }
             }],
+            'newPasswordCompare' => [
+                'new_password_repeat',
+                'compare',
+                'compareAttribute' => 'new_password',
+                'skipOnEmpty' => true,
+                'message'=> Yii::t('user', 'Passwords are not the same')
+            ],
         ];
+
+        if ($this->module->enableStrengthValidaton === true) {
+            $rules_password = [
+                'newPasswordStrength' => array_merge(
+                    ['new_password', StrengthValidator::className()],
+                $this->module->passwordStrengthConfig
+                ),
+            ];
+        } else {
+            $rules_password = [
+                'newPasswordLength' => ['new_password', 'string', 'max' => 72, 'min' => 6],
+            ];
+        }
+
+        $rules = array_merge($rules, $rules_password);
+
+        return $rules;
     }
 
     /** @inheritdoc */
     public function attributeLabels()
     {
         return [
-            'email'            => Yii::t('user', 'Email'),
-            'username'         => Yii::t('user', 'Username'),
-            'new_password'     => Yii::t('user', 'New password'),
-            'current_password' => Yii::t('user', 'Current password'),
+            'email'               => Yii::t('user', 'Email'),
+            'username'            => Yii::t('user', 'Username'),
+            'current_password'    => Yii::t('user', 'Current password'),
+            'new_password'        => Yii::t('user', 'New password'),
+            'new_password_repeat' => Yii::t('user', 'New password repeat'),
         ];
     }
 
